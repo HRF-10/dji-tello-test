@@ -1,7 +1,6 @@
 ion-content {
   --background: #fff; /* Latar belakang konten putih */
   display: flex;
-  flex-direction: column; /* Agar konten vertikal */
   align-items: center;
   justify-content: center; /* Mengatur konten agar berada di tengah */
   width: 100%;		
@@ -11,15 +10,14 @@ ion-content {
 /* Controller Container */
 .controller-container {
   position: relative;
+  height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center; /* Pusatkan semua konten secara vertikal */
-  gap: 20px; /* Jarak antar elemen */
 }
 
-/* Top Right Buttons */
 .top-right {
   position: absolute;
   top: 16px;
@@ -41,16 +39,10 @@ canvas {
 
 /* Button Styling */
 ion-button {
+  margin-top: 16px; /* Jarak tombol dari elemen di atasnya */
   width: 80%; /* Lebar tombol relatif terhadap lebar container */
 }
 
 ion-button.expand-full {
   width: 100%; /* Lebar tombol expand-full memenuhi lebar container */
-}
-
-/* Waypoints List */
-.waypoints-container {
-  width: 80%;
-  max-height: 200px;
-  overflow-y: auto;
 }
