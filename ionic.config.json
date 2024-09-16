@@ -1,0 +1,7 @@
+{
+  "name": "dji-tello-controller",
+  "integrations": {
+    "cordova": {}
+  },
+  "type": "angular"
+}

@@ -1,0 +1,23 @@
+<ion-content class="ion-padding">
+  <div class="controller-container">
+    <div class="top-right">
+      <ion-button color="warning" shape="round" (click)="sendCommand('command')">
+        <ion-icon name="wifi" slot="icon-only"></ion-icon>
+      </ion-button>
+      <ion-button color="primary" shape="round" (click)="executeCommands()">
+        <ion-icon name="play" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>
+
+    <div class="top-left">
+      <ion-button color="success" shape="round" (click)="takeOff()">
+        <ion-icon name="airplane" slot="icon-only"></ion-icon>
+      </ion-button>
+      <ion-button color="danger" shape="round" (click)="land()">
+        <ion-icon name="power" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>
+
+    <canvas #canvas id="droneCanvas" width="300" height="300" (click)="handleCanvasClick($event)"></canvas>
+  </div>
+</ion-content>
