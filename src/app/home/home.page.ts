@@ -12,10 +12,8 @@ export class HomePage {
   gridSize = 10;
   cellSize = 30;
   grid: string[][] = [];
-  start: { i: number, j: number } | null = null;
-  end: { i: number, j: number } | null = null;
-  executingCommands = false;
-  waypoints: { points: { i: number, j: number }[] }[] = []; // Array untuk menyimpan waypoint
+  points: { i: number, j: number }[] = []; // Array untuk menyimpan semua titik
+  isFlying = false; // Status apakah drone sedang terbang atau tidak
 
   constructor(private telloService: TelloService) {}
 
@@ -39,143 +37,185 @@ export class HomePage {
     this.ctx.clearRect(0, 0, this.canvas.nativeElement.width, this.canvas.nativeElement.height);
     for (let i = 0; i < this.gridSize; i++) {
       for (let j = 0; j < this.gridSize; j++) {
-        this.ctx.fillStyle = this.grid[i][j] ? this.grid[i][j] : 'white';
+        const y = this.gridSize - 1 - j; // Membalik sumbu Y untuk menggambar
+        this.ctx.fillStyle = this.grid[i][y] ? this.grid[i][y] : 'white';
         this.ctx.fillRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
         this.ctx.strokeRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
       }
     }
   }
+  
 
   handleCanvasClick(event: MouseEvent) {
     const rect = this.canvas.nativeElement.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     const i = Math.floor(x / this.cellSize);
-    const j = Math.floor(y / this.cellSize);
-
-    if (this.grid[i][j] === 'green') {
-      return;
+    const j = this.gridSize - 1 - Math.floor(y / this.cellSize); // Membalik sumbu Y
+  
+    if (i >= this.gridSize || j >= this.gridSize || i < 0 || j < 0) {
+      return; // Cegah kesalahan indeks
     }
-
-    if (this.start === null) {
-      this.start = { i, j };
-      this.grid[i][j] = 'yellow';
+  
+    // Tambahkan titik ke array points
+    this.points.push({ i, j });
+  
+    // Tandai titik pertama dengan warna kuning, titik lainnya dengan hijau
+    if (this.points.length === 1) {
+      this.grid[i][j] = 'yellow'; // Titik awal berwarna kuning
     } else {
-      this.end = { i, j };
-      this.blockPath();
-      this.start = this.end;
+      this.grid[i][j] = 'green'; // Titik selanjutnya berwarna hijau
     }
-
+  
+    // Jika lebih dari satu titik, sambungkan titik-titik tersebut
+    if (this.points.length > 1) {
+      const lastPoint = this.points[this.points.length - 2]; // Ambil titik sebelumnya
+      this.blockPath(lastPoint, this.points[this.points.length - 1]);
+    }
+  
     this.drawGrid();
-  }
+  }  
 
-  blockPath() {
-    if (this.start && this.end) {
-      let { i: x0, j: y0 } = this.start;
-      const { i: x1, j: y1 } = this.end;
+  blockPath(start: { i: number, j: number }, end: { i: number, j: number }) {
+    let { i: x0, j: y0 } = start;
+    const { i: x1, j: y1 } = end;
 
-      const dx = Math.abs(x1 - x0);
-      const dy = Math.abs(y1 - y0);
-      const sx = x0 < x1 ? 1 : -1;
-      const sy = y0 < y1 ? 1 : -1;
-      let err = dx - dy;
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
 
-      while (!(x0 === x1 && y0 === y1)) {
-        this.grid[x0][y0] = 'green';
-        const e2 = 2 * err;
-        if (e2 > -dy) { err -= dy; x0 += sx; }
-        if (e2 < dx) { err += dx; y0 += sy; }
-      }
-      this.grid[x1][y1] = 'green';
+    while (!(x0 === x1 && y0 === y1)) {
+      this.grid[x0][y0] = 'green'; // Warna hijau untuk jalur yang terhubung
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x0 += sx; }
+      if (e2 < dx) { err += dx; y0 += sy; }
     }
+
+    this.grid[x1][y1] = 'green'; // Warna hijau untuk titik akhir
   }
 
-  saveWaypoint() {
-    // Simpan waypoint baru berdasarkan jalur yang telah dipilih
-    const newWaypoint = { points: [] as { i: number, j: number }[] };
-    
-    for (let i = 0; i < this.gridSize; i++) {
-      for (let j = 0; j < this.gridSize; j++) {
-        if (this.grid[i][j] === 'green' || this.grid[i][j] === 'yellow') {
-          newWaypoint.points.push({ i, j });
-        }
-      }
-    }
-    
-    // Hanya simpan waypoint jika ada titik yang dipilih
-    if (newWaypoint.points.length > 0) {
-      this.waypoints.push(newWaypoint);
-      this.resetGrid(); // Reset grid setelah menyimpan
-    }
-  }
-
-  resetGrid() {
-    this.start = null;
-    this.end = null;
-    this.initializeGrid(); // Reset semua grid ke kondisi awal
-    this.drawGrid();
-  }
-
-  executeCommands() {
-    if (this.executingCommands || this.waypoints.length === 0) {
+  async executeCommands() {
+    if (!this.isFlying) {
+      console.error('Drone belum terbang. Silakan tekan tombol takeoff terlebih dahulu.');
       return;
     }
-
-    this.executingCommands = true;
-    for (const waypoint of this.waypoints) {
-      const commands = this.generateCommandsFromWaypoint(waypoint);
+  
+    if (this.points.length < 2) {
+      console.error('Minimal dua titik diperlukan untuk mengeksekusi perintah.');
+      return;
+    }
+  
+    for (let i = 0; i < this.points.length - 1; i++) {
+      const commands = this.generateCommandsFromStartEnd(this.points[i], this.points[i + 1]);
       for (const command of commands) {
-        this.telloService.sendCommand(command);
+        await this.sendCommandWithDelay(command);
       }
     }
+  
+    this.resetGrid();
+  }
+
+  async sendCommandWithDelay(command: string) {
+    console.log(`Mengirim perintah: ${command}`);
+    this.telloService.sendCommand(command);
     
-    this.executingCommands = false;
-    this.waypoints = []; // Kosongkan waypoint setelah eksekusi
+    // Jeda 1 detik sebelum mengirim perintah berikutnya
+    await this.delay(1000);
   }
-
-  generateCommandsFromWaypoint(waypoint: { points: { i: number, j: number }[] }): string[] {
-    const commands: string[] = [];
-    const points = waypoint.points;
-
-    for (let k = 0; k < points.length - 1; k++) {
-      const { i: x0, j: y0 } = points[k];
-      const { i: x1, j: y1 } = points[k + 1];
-
-      const dx = x1 - x0;
-      const dy = y1 - y0;
-
-      if (dx === 0 && dy > 0) {
-        commands.push(`forward ${dy * 100}`);
-      } else if (dx === 0 && dy < 0) {
-        commands.push(`backward ${Math.abs(dy) * 100}`);
-      } else if (dy === 0 && dx > 0) {
-        commands.push(`right ${dx * 100}`);
-      } else if (dy === 0 && dx < 0) {
-        commands.push(`left ${Math.abs(dx) * 100}`);
-      } else if (dx > 0 && dy > 0) {
-        commands.push(`NE ${Math.min(dx, dy) * 100}`);
-      } else if (dx > 0 && dy < 0) {
-        commands.push(`SE ${Math.min(dx, Math.abs(dy)) * 100}`);
-      } else if (dx < 0 && dy > 0) {
-        commands.push(`NW ${Math.min(Math.abs(dx), dy) * 100}`);
-      } else if (dx < 0 && dy < 0) {
-        commands.push(`SW ${Math.min(Math.abs(dx), Math.abs(dy)) * 100}`);
-      }
-    }
-
-    return commands;
-  }
-
+  
+  // Fungsi delay
   delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  generateCommandsFromStartEnd(start: { i: number, j: number }, end: { i: number, j: number }): string[] {
+    const commands: string[] = [];
+    const { i: x0, j: y0 } = start;
+    const { i: x1, j: y1 } = end;
+  
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+  
+    const maxDistance = 500; // Batas maksimum jarak per perintah adalah 500 cm
+    const distancePerStep = 100; // Jarak tiap langkah dalam grid (dalam cm)
+  
+    // Fungsi untuk menambah perintah gerakan ke array
+    const moveDrone = (command: string, distance: number) => {
+      while (distance > 0) {
+        const step = Math.min(distance, maxDistance); // Pastikan jarak tiap perintah tidak lebih dari 500 cm
+        commands.push(`${command} ${step}`);
+        distance -= step;
+      }
+    };
+  
+    // Menghitung pergerakan ke arah yang benar
+    if (dx === 0 && dy > 0) {
+      // Maju
+      moveDrone('forward', dy * distancePerStep);
+    } else if (dx === 0 && dy < 0) {
+      // Mundur
+      moveDrone('back', Math.abs(dy) * distancePerStep); // Mengganti 'backward' dengan 'back'
+    } else if (dy === 0 && dx > 0) {
+      // Kanan
+      moveDrone('right', dx * distancePerStep);
+    } else if (dy === 0 && dx < 0) {
+      // Kiri
+      moveDrone('left', Math.abs(dx) * distancePerStep);
+    } else if (dx > 0 && dy > 0) {
+      // Serong kanan atas (NE)
+      moveDrone('forward', dy * distancePerStep);
+      moveDrone('right', dx * distancePerStep);
+    } else if (dx > 0 && dy < 0) {
+      // Serong kanan bawah (SE)
+      moveDrone('back', Math.abs(dy) * distancePerStep); // Mengganti 'backward' dengan 'back'
+      moveDrone('right', dx * distancePerStep);
+    } else if (dx < 0 && dy > 0) {
+      // Serong kiri atas (NW)
+      moveDrone('forward', dy * distancePerStep);
+      moveDrone('left', Math.abs(dx) * distancePerStep);
+    } else if (dx < 0 && dy < 0) {
+      // Serong kiri bawah (SW)
+      moveDrone('back', Math.abs(dy) * distancePerStep); // Mengganti 'backward' dengan 'back'
+      moveDrone('left', Math.abs(dx) * distancePerStep);
+    }
+  
+    return commands;
+  }  
+
+  resetGrid() {
+    this.points = [];
+    this.initializeGrid();
+    this.drawGrid();
+  }
+
   takeOff() {
+    if (this.isFlying) {
+      console.log('Drone sudah terbang.');
+      return;
+    }
+
     this.telloService.sendCommand('takeoff');
+    this.isFlying = true;
   }
 
   land() {
+    if (!this.isFlying) {
+      console.log('Drone belum terbang.');
+      return;
+    }
+  
     this.telloService.sendCommand('land');
+    this.isFlying = false;
+  
+    // Inisialisasi ulang setelah landing
+    this.reinitializeDrone();
+  }
+  
+  reinitializeDrone() {
+    console.log('Menginisialisasi ulang drone setelah landing...');
+    this.telloService.sendCommand('command'); // Kirim perintah untuk inisialisasi ulang
   }
 
   sendCommand(command: string) {
