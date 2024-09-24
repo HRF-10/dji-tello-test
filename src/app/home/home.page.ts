@@ -141,12 +141,28 @@ export class HomePage {
     const maxDistance = 500; // Batas maksimum jarak per perintah adalah 500 cm
     const distancePerStep = 100; // Jarak tiap langkah dalam grid (dalam cm)
   
-    // Fungsi untuk menambah perintah gerakan ke array
     const moveDrone = (command: string, distance: number) => {
       while (distance > 0) {
-        const step = Math.min(distance, maxDistance); // Pastikan jarak tiap perintah tidak lebih dari 500 cm
+        const step = Math.min(distance, maxDistance);
         commands.push(`${command} ${step}`);
         distance -= step;
+      }
+    };
+  
+    const moveDiagonally = (commandX: string, commandY: string, dx: number, dy: number) => {
+      const totalDistance = Math.sqrt(dx * dx + dy * dy) * distancePerStep; // Jarak diagonal total
+      let remainingDistance = totalDistance;
+  
+      // Menjalankan drone dalam langkah-langkah kecil untuk mencapai diagonal
+      while (remainingDistance > 0) {
+        const stepDistance = Math.min(remainingDistance, maxDistance);
+        const stepX = (dx / Math.sqrt(dx * dx + dy * dy)) * stepDistance; // Komponen X untuk langkah
+        const stepY = (dy / Math.sqrt(dx * dx + dy * dy)) * stepDistance;
+        
+        commands.push(`${commandX} ${Math.abs(Math.round(stepX))}`);
+        commands.push(`${commandY} ${Math.abs(Math.round(stepY))}`);
+        
+        remainingDistance -= stepDistance;
       }
     };
   
@@ -156,7 +172,7 @@ export class HomePage {
       moveDrone('forward', dy * distancePerStep);
     } else if (dx === 0 && dy < 0) {
       // Mundur
-      moveDrone('back', Math.abs(dy) * distancePerStep); // Mengganti 'backward' dengan 'back'
+      moveDrone('back', Math.abs(dy) * distancePerStep);
     } else if (dy === 0 && dx > 0) {
       // Kanan
       moveDrone('right', dx * distancePerStep);
@@ -165,24 +181,20 @@ export class HomePage {
       moveDrone('left', Math.abs(dx) * distancePerStep);
     } else if (dx > 0 && dy > 0) {
       // Serong kanan atas (NE)
-      moveDrone('forward', dy * distancePerStep);
-      moveDrone('right', dx * distancePerStep);
+      moveDiagonally('right', 'forward', dx, dy);
     } else if (dx > 0 && dy < 0) {
       // Serong kanan bawah (SE)
-      moveDrone('back', Math.abs(dy) * distancePerStep); // Mengganti 'backward' dengan 'back'
-      moveDrone('right', dx * distancePerStep);
+      moveDiagonally('right', 'back', dx, Math.abs(dy));
     } else if (dx < 0 && dy > 0) {
       // Serong kiri atas (NW)
-      moveDrone('forward', dy * distancePerStep);
-      moveDrone('left', Math.abs(dx) * distancePerStep);
+      moveDiagonally('left', 'forward', Math.abs(dx), dy);
     } else if (dx < 0 && dy < 0) {
       // Serong kiri bawah (SW)
-      moveDrone('back', Math.abs(dy) * distancePerStep); // Mengganti 'backward' dengan 'back'
-      moveDrone('left', Math.abs(dx) * distancePerStep);
+      moveDiagonally('left', 'back', Math.abs(dx), Math.abs(dy));
     }
   
     return commands;
-  }  
+  }    
 
   resetGrid() {
     this.points = [];
