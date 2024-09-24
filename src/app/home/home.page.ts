@@ -51,16 +51,14 @@ export class HomePage {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     const i = Math.floor(x / this.cellSize);
-    const j = this.gridSize - 1 - Math.floor(y / this.cellSize); // Membalik sumbu Y
-  
+    const j = this.gridSize - 1 - Math.floor(y / this.cellSize);
     if (i >= this.gridSize || j >= this.gridSize || i < 0 || j < 0) {
-      return; // Cegah kesalahan indeks
+      return;
     }
   
     // Tambahkan titik ke array points
     this.points.push({ i, j });
-  
-    // Tandai titik pertama dengan warna kuning, titik lainnya dengan hijau
+
     if (this.points.length === 1) {
       this.grid[i][j] = 'yellow'; // Titik awal berwarna kuning
     } else {
@@ -150,21 +148,27 @@ export class HomePage {
     };
   
     const moveDiagonally = (commandX: string, commandY: string, dx: number, dy: number) => {
-      const totalDistance = Math.sqrt(dx * dx + dy * dy) * distancePerStep; // Jarak diagonal total
-      let remainingDistance = totalDistance;
-  
+      const totalDistanceX = Math.abs(dx) * distancePerStep; // Total jarak di sumbu X
+      const totalDistanceY = Math.abs(dy) * distancePerStep; // Total jarak di sumbu Y
+      let remainingDistanceX = totalDistanceX;
+      let remainingDistanceY = totalDistanceY;
+    
       // Menjalankan drone dalam langkah-langkah kecil untuk mencapai diagonal
-      while (remainingDistance > 0) {
-        const stepDistance = Math.min(remainingDistance, maxDistance);
-        const stepX = (dx / Math.sqrt(dx * dx + dy * dy)) * stepDistance; // Komponen X untuk langkah
-        const stepY = (dy / Math.sqrt(dx * dx + dy * dy)) * stepDistance;
+      while (remainingDistanceX > 0 || remainingDistanceY > 0) {
+        const stepX = Math.min(remainingDistanceX, maxDistance); // Langkah kecil untuk X
+        const stepY = Math.min(remainingDistanceY, maxDistance); // Langkah kecil untuk Y
         
-        commands.push(`${commandX} ${Math.abs(Math.round(stepX))}`);
-        commands.push(`${commandY} ${Math.abs(Math.round(stepY))}`);
-        
-        remainingDistance -= stepDistance;
+        if (remainingDistanceX > 0) {
+          commands.push(`${commandX} ${Math.abs(Math.round(stepX))}`);
+          remainingDistanceX -= stepX;
+        }
+    
+        if (remainingDistanceY > 0) {
+          commands.push(`${commandY} ${Math.abs(Math.round(stepY))}`);
+          remainingDistanceY -= stepY;
+        }
       }
-    };
+    };    
   
     // Menghitung pergerakan ke arah yang benar
     if (dx === 0 && dy > 0) {
@@ -221,13 +225,12 @@ export class HomePage {
     this.telloService.sendCommand('land');
     this.isFlying = false;
   
-    // Inisialisasi ulang setelah landing
     this.reinitializeDrone();
   }
   
   reinitializeDrone() {
     console.log('Menginisialisasi ulang drone setelah landing...');
-    this.telloService.sendCommand('command'); // Kirim perintah untuk inisialisasi ulang
+    this.telloService.sendCommand('command');
   }
 
   sendCommand(command: string) {
