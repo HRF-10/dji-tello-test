@@ -118,8 +118,7 @@ export class HomePage {
   async sendCommandWithDelay(command: string) {
     console.log(`Mengirim perintah: ${command}`);
     this.telloService.sendCommand(command);
-    
-    // Jeda 1 detik sebelum mengirim perintah berikutnya
+
     await this.delay(1000);
   }
   
