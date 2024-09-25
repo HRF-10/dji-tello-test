@@ -156,6 +156,7 @@ export class HomePage {
 
     const maxDistance = 500; // Batas maksimum jarak per perintah adalah 500 cm
     const distancePerStep = 100; // Jarak tiap langkah dalam grid (dalam cm)
+    const diagonalSpeed = 50; // Kecepatan untuk gerakan serong dalam cm/s
 
     const moveDrone = (command: string, distance: number) => {
         while (distance > 0) {
@@ -165,7 +166,6 @@ export class HomePage {
         }
     };
 
-    // Menghitung pergerakan ke arah yang benar
     if (dx === 0 && dy > 0) {
         // Maju
         moveDrone('forward', dy * distancePerStep);
@@ -179,21 +179,23 @@ export class HomePage {
         // Kiri
         moveDrone('left', Math.abs(dx) * distancePerStep);
     } else {
-        // Untuk gerakan diagonal
+        // Gerakan diagonal
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
-        const directionX = dx > 0 ? 50 : -50; // Kecepatan kanan/kiri
-        const directionY = dy > 0 ? 50 : -50; // Kecepatan depan/belakang
-        const stepCount = Math.max(absDx, absDy); // Jumlah langkah yang dibutuhkan
+        const distance = Math.sqrt(absDx * absDx + absDy * absDy) * distancePerStep; // Menghitung jarak diagonal
+        const duration = (distance / diagonalSpeed) * 1000; // Menghitung durasi gerakan dalam milidetik
+        
+        // Gunakan rc command untuk gerakan diagonal dengan durasi yang sesuai
+        const directionX = dx > 0 ? diagonalSpeed : -diagonalSpeed; // Kecepatan kanan/kiri
+        const directionY = dy > 0 ? diagonalSpeed : -diagonalSpeed; // Kecepatan depan/belakang
 
-        for (let step = 0; step < stepCount; step++) {
-            commands.push(`rc ${directionX} ${directionY} ${0} ${0}`); // Menggunakan rc untuk gerakan diagonal
-            await this.delay(2000); // Tunggu selama 2 detik per langkah
-        }
+        commands.push(`rc ${directionX} ${directionY} 0 0`);
+        await this.delay(duration);
+        commands.push('rc 0 0 0 0'); // Hentikan gerakan setelah durasi berakhir
     }
 
     return commands;
-  } 
+  }
 
   resetGrid() {
     this.points = [];
