@@ -118,7 +118,8 @@ export class HomePage {
   async sendCommandWithDelay(command: string) {
     console.log(`Mengirim perintah: ${command}`);
     this.telloService.sendCommand(command);
-
+    
+    // Jeda 1 detik sebelum mengirim perintah berikutnya
     await this.delay(1000);
   }
   
@@ -127,77 +128,51 @@ export class HomePage {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  generateCommandsFromStartEnd(start: { i: number, j: number }, end: { i: number, j: number }): string[] {
-    const commands: string[] = [];
-    const { i: x0, j: y0 } = start;
-    const { i: x1, j: y1 } = end;
-  
-    const dx = x1 - x0;
-    const dy = y1 - y0;
-  
-    const maxDistance = 500; // Batas maksimum jarak per perintah adalah 500 cm
-    const distancePerStep = 100; // Jarak tiap langkah dalam grid (dalam cm)
-  
-    const moveDrone = (command: string, distance: number) => {
-      while (distance > 0) {
-        const step = Math.min(distance, maxDistance);
-        commands.push(`${command} ${step}`);
-        distance -= step;
-      }
-    };
-  
-    const moveDiagonally = (commandX: string, commandY: string, dx: number, dy: number) => {
-      const totalDistanceX = Math.abs(dx) * distancePerStep; // Total jarak di sumbu X
-      const totalDistanceY = Math.abs(dy) * distancePerStep; // Total jarak di sumbu Y
-      let remainingDistanceX = totalDistanceX;
-      let remainingDistanceY = totalDistanceY;
+    generateCommandsFromStartEnd(start: { i: number, j: number }, end: { i: number, j: number }): string[] {
+      const commands: string[] = [];
+      const { i: x0, j: y0 } = start;
+      const { i: x1, j: y1 } = end;
     
-      // Menjalankan drone dalam langkah-langkah kecil untuk mencapai diagonal
-      while (remainingDistanceX > 0 || remainingDistanceY > 0) {
-        const stepX = Math.min(remainingDistanceX, maxDistance); // Langkah kecil untuk X
-        const stepY = Math.min(remainingDistanceY, maxDistance); // Langkah kecil untuk Y
-        
-        if (remainingDistanceX > 0) {
-          commands.push(`${commandX} ${Math.abs(Math.round(stepX))}`);
-          remainingDistanceX -= stepX;
-        }
+      const dx = x1 - x0;
+      const dy = y1 - y0;
     
-        if (remainingDistanceY > 0) {
-          commands.push(`${commandY} ${Math.abs(Math.round(stepY))}`);
-          remainingDistanceY -= stepY;
+      const maxDistance = 100; // Batas jarak per langkah adalah 100 cm (1 meter)
+      const speed = 50; // Kecepatan drone adalah 50 cm/s
+    
+      const moveDrone = (command: string, distance: number) => {
+        while (distance > 0) {
+          const step = Math.min(distance, maxDistance);
+          commands.push(`${command} ${step}`);
+          distance -= step;
         }
+      };
+    
+      const moveDiagonally = (dx: number, dy: number) => {
+        const duration = 2000; // Durasi dalam milidetik untuk 2 detik
+        const command = `rc ${dx > 0 ? 50 : -50} ${dy > 0 ? 50 : -50} 0 0`;
+        commands.push(`${command} ${duration}`);
+      };
+    
+      // Menghitung pergerakan ke arah yang benar
+      if (dx === 0 && dy > 0) {
+        // Maju
+        moveDrone('forward', dy * maxDistance);
+      } else if (dx === 0 && dy < 0) {
+        // Mundur
+        moveDrone('back', Math.abs(dy) * maxDistance);
+      } else if (dy === 0 && dx > 0) {
+        // Kanan
+        moveDrone('right', dx * maxDistance);
+      } else if (dy === 0 && dx < 0) {
+        // Kiri
+        moveDrone('left', Math.abs(dx) * maxDistance);
+      } else {
+        // Gerakan diagonal
+        moveDiagonally(dx, dy);
       }
-    };    
-  
-    // Menghitung pergerakan ke arah yang benar
-    if (dx === 0 && dy > 0) {
-      // Maju
-      moveDrone('forward', dy * distancePerStep);
-    } else if (dx === 0 && dy < 0) {
-      // Mundur
-      moveDrone('back', Math.abs(dy) * distancePerStep);
-    } else if (dy === 0 && dx > 0) {
-      // Kanan
-      moveDrone('right', dx * distancePerStep);
-    } else if (dy === 0 && dx < 0) {
-      // Kiri
-      moveDrone('left', Math.abs(dx) * distancePerStep);
-    } else if (dx > 0 && dy > 0) {
-      // Serong kanan atas (NE)
-      moveDiagonally('right', 'forward', dx, dy);
-    } else if (dx > 0 && dy < 0) {
-      // Serong kanan bawah (SE)
-      moveDiagonally('right', 'back', dx, Math.abs(dy));
-    } else if (dx < 0 && dy > 0) {
-      // Serong kiri atas (NW)
-      moveDiagonally('left', 'forward', Math.abs(dx), dy);
-    } else if (dx < 0 && dy < 0) {
-      // Serong kiri bawah (SW)
-      moveDiagonally('left', 'back', Math.abs(dx), Math.abs(dy));
-    }
-  
-    return commands;
-  }    
+    
+      return commands;
+    }    
 
   resetGrid() {
     this.points = [];
