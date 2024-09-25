@@ -20,8 +20,8 @@
         <ion-icon name="airplane" slot="icon-only" class="rotate-airplane"></ion-icon>
       </ion-button>
       <ion-button color="medium" shape="round" 
-                  (mousedown)="startRotateDrone()"
-                  (mouseup)="stopRotateDrone()">
+                  (touchstart)="startRotateDrone()"
+                  (touchend)="stopRotateDrone()">
         <ion-icon name="reload-circle" slot="icon-only"></ion-icon>
       </ion-button>
     </div>      

@@ -207,7 +207,6 @@ export class HomePage {
   }
 
   startRotateDrone() {
-    // Mengirim perintah 'rc' untuk memutar drone ke kanan secara terus-menerus
     this.rotationInterval = setInterval(() => {
       console.log('Drone berputar secara clockwise.');
       this.sendCommand('rc 0 0 0 50'); // 50 adalah kecepatan yawing ke kanan
