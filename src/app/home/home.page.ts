@@ -13,7 +13,9 @@ export class HomePage {
   cellSize = 30;
   grid: string[][] = [];
   points: { i: number, j: number }[] = []; // Array untuk menyimpan semua titik
+  ripples: { x: number, y: number, radius: number, alpha: number }[] = [];  // Untuk efek gelombang
   isFlying = false; // Status apakah drone sedang terbang atau tidak
+  rotationInterval: any; // Menyimpan interval rotasi
 
   constructor(private telloService: TelloService) {}
 
@@ -35,16 +37,39 @@ export class HomePage {
 
   drawGrid() {
     this.ctx.clearRect(0, 0, this.canvas.nativeElement.width, this.canvas.nativeElement.height);
+    
     for (let i = 0; i < this.gridSize; i++) {
       for (let j = 0; j < this.gridSize; j++) {
         const y = this.gridSize - 1 - j; // Membalik sumbu Y untuk menggambar
-        this.ctx.fillStyle = this.grid[i][y] ? this.grid[i][y] : 'white';
+        this.ctx.fillStyle = this.grid[i][y] ? this.grid[i][y] : 'rgba(30, 30, 50, 0.7)';
         this.ctx.fillRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; // Putih dengan sedikit transparansi
         this.ctx.strokeRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
       }
     }
+    
+    this.drawRipples();
   }
-  
+
+  drawRipples() {
+    this.ripples.forEach((ripple, index) => {
+      this.ctx.beginPath();
+      this.ctx.arc(ripple.x, ripple.y, ripple.radius, 0, 2 * Math.PI);
+      this.ctx.strokeStyle = `rgba(255, 255, 255, ${ripple.alpha})`;
+      this.ctx.lineWidth = 2;
+      this.ctx.stroke();
+      ripple.radius += 2;
+      ripple.alpha -= 0.02;
+
+      if (ripple.alpha <= 0) {
+        this.ripples.splice(index, 1);
+      }
+    });
+
+    if (this.ripples.length > 0) {
+      requestAnimationFrame(() => this.drawGrid());
+    }
+  }
 
   handleCanvasClick(event: MouseEvent) {
     const rect = this.canvas.nativeElement.getBoundingClientRect();
@@ -52,27 +77,23 @@ export class HomePage {
     const y = event.clientY - rect.top;
     const i = Math.floor(x / this.cellSize);
     const j = this.gridSize - 1 - Math.floor(y / this.cellSize);
+
     if (i >= this.gridSize || j >= this.gridSize || i < 0 || j < 0) {
       return;
     }
-  
-    // Tambahkan titik ke array points
+
+    this.ripples.push({ x, y, radius: 0, alpha: 1 });
     this.points.push({ i, j });
 
     if (this.points.length === 1) {
-      this.grid[i][j] = 'yellow'; // Titik awal berwarna kuning
+      this.grid[i][j] = 'cyan'; // Titik pertama menggunakan cyan
     } else {
-      this.grid[i][j] = 'green'; // Titik selanjutnya berwarna hijau
+      this.grid[i][j] = 'lightgreen'; // Titik selanjutnya menggunakan light green
+      this.blockPath(this.points[this.points.length - 2], this.points[this.points.length - 1]);
     }
-  
-    // Jika lebih dari satu titik, sambungkan titik-titik tersebut
-    if (this.points.length > 1) {
-      const lastPoint = this.points[this.points.length - 2]; // Ambil titik sebelumnya
-      this.blockPath(lastPoint, this.points[this.points.length - 1]);
-    }
-  
+
     this.drawGrid();
-  }  
+  }
 
   blockPath(start: { i: number, j: number }, end: { i: number, j: number }) {
     let { i: x0, j: y0 } = start;
@@ -85,94 +106,94 @@ export class HomePage {
     let err = dx - dy;
 
     while (!(x0 === x1 && y0 === y1)) {
-      this.grid[x0][y0] = 'green'; // Warna hijau untuk jalur yang terhubung
+      this.grid[x0][y0] = 'yellow'; // Warna jalur yang terhubung menggunakan yellow
       const e2 = 2 * err;
       if (e2 > -dy) { err -= dy; x0 += sx; }
       if (e2 < dx) { err += dx; y0 += sy; }
     }
-
-    this.grid[x1][y1] = 'green'; // Warna hijau untuk titik akhir
+    this.grid[x1][y1] = 'yellow'; // Warna titik akhir menggunakan yellow
   }
 
   async executeCommands() {
     if (!this.isFlying) {
-      console.error('Drone belum terbang. Silakan tekan tombol takeoff terlebih dahulu.');
-      return;
+        console.error('Drone belum terbang. Silakan tekan tombol takeoff terlebih dahulu.');
+        return;
     }
-  
+
     if (this.points.length < 2) {
-      console.error('Minimal dua titik diperlukan untuk mengeksekusi perintah.');
-      return;
+        console.error('Minimal dua titik diperlukan untuk mengeksekusi perintah.');
+        return;
     }
-  
+
     for (let i = 0; i < this.points.length - 1; i++) {
-      const commands = this.generateCommandsFromStartEnd(this.points[i], this.points[i + 1]);
-      for (const command of commands) {
-        await this.sendCommandWithDelay(command);
-      }
+        const commands = await this.generateCommandsFromStartEnd(this.points[i], this.points[i + 1]);
+        for (const command of commands) {
+            await this.sendCommandWithDelay(command);
+        }
     }
-  
+
     this.resetGrid();
   }
+
 
   async sendCommandWithDelay(command: string) {
     console.log(`Mengirim perintah: ${command}`);
     this.telloService.sendCommand(command);
-    
-    // Jeda 1 detik sebelum mengirim perintah berikutnya
-    await this.delay(1000);
+    await this.delay(1000); // Jeda 1 detik sebelum mengirim perintah berikutnya
   }
   
-  // Fungsi delay
   delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-    generateCommandsFromStartEnd(start: { i: number, j: number }, end: { i: number, j: number }): string[] {
-      const commands: string[] = [];
-      const { i: x0, j: y0 } = start;
-      const { i: x1, j: y1 } = end;
-    
-      const dx = x1 - x0;
-      const dy = y1 - y0;
-    
-      const maxDistance = 100; // Batas jarak per langkah adalah 100 cm (1 meter)
-      const speed = 50; // Kecepatan drone adalah 50 cm/s
-    
-      const moveDrone = (command: string, distance: number) => {
+  async generateCommandsFromStartEnd(start: { i: number, j: number }, end: { i: number, j: number }): Promise<string[]> {
+    const commands: string[] = [];
+    const { i: x0, j: y0 } = start;
+    const { i: x1, j: y1 } = end;
+
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+
+    const maxDistance = 500; // Batas maksimum jarak per perintah adalah 500 cm
+    const distancePerStep = 100; // Jarak tiap langkah dalam grid (dalam cm)
+
+    const moveDrone = (command: string, distance: number) => {
         while (distance > 0) {
-          const step = Math.min(distance, maxDistance);
-          commands.push(`${command} ${step}`);
-          distance -= step;
+            const step = Math.min(distance, maxDistance);
+            commands.push(`${command} ${step}`);
+            distance -= step;
         }
-      };
-    
-      const moveDiagonally = (dx: number, dy: number) => {
-        const duration = 2000; // Durasi dalam milidetik untuk 2 detik
-        const command = `rc ${dx > 0 ? 50 : -50} ${dy > 0 ? 50 : -50} 0 0`;
-        commands.push(`${command} ${duration}`);
-      };
-    
-      // Menghitung pergerakan ke arah yang benar
-      if (dx === 0 && dy > 0) {
+    };
+
+    // Menghitung pergerakan ke arah yang benar
+    if (dx === 0 && dy > 0) {
         // Maju
-        moveDrone('forward', dy * maxDistance);
-      } else if (dx === 0 && dy < 0) {
+        moveDrone('forward', dy * distancePerStep);
+    } else if (dx === 0 && dy < 0) {
         // Mundur
-        moveDrone('back', Math.abs(dy) * maxDistance);
-      } else if (dy === 0 && dx > 0) {
+        moveDrone('back', Math.abs(dy) * distancePerStep);
+    } else if (dy === 0 && dx > 0) {
         // Kanan
-        moveDrone('right', dx * maxDistance);
-      } else if (dy === 0 && dx < 0) {
+        moveDrone('right', dx * distancePerStep);
+    } else if (dy === 0 && dx < 0) {
         // Kiri
-        moveDrone('left', Math.abs(dx) * maxDistance);
-      } else {
-        // Gerakan diagonal
-        moveDiagonally(dx, dy);
-      }
-    
-      return commands;
-    }    
+        moveDrone('left', Math.abs(dx) * distancePerStep);
+    } else {
+        // Untuk gerakan diagonal
+        const absDx = Math.abs(dx);
+        const absDy = Math.abs(dy);
+        const directionX = dx > 0 ? 50 : -50; // Kecepatan kanan/kiri
+        const directionY = dy > 0 ? 50 : -50; // Kecepatan depan/belakang
+        const stepCount = Math.max(absDx, absDy); // Jumlah langkah yang dibutuhkan
+
+        for (let step = 0; step < stepCount; step++) {
+            commands.push(`rc ${directionX} ${directionY} ${0} ${0}`); // Menggunakan rc untuk gerakan diagonal
+            await this.delay(2000); // Tunggu selama 2 detik per langkah
+        }
+    }
+
+    return commands;
+  } 
 
   resetGrid() {
     this.points = [];
@@ -180,14 +201,27 @@ export class HomePage {
     this.drawGrid();
   }
 
-  takeOff() {
-    if (this.isFlying) {
-      console.log('Drone sudah terbang.');
-      return;
-    }
-
+  async takeOff() {
     this.telloService.sendCommand('takeoff');
     this.isFlying = true;
+  }
+
+  startRotateDrone() {
+    // Mengirim perintah 'rc' untuk memutar drone ke kanan secara terus-menerus
+    this.rotationInterval = setInterval(() => {
+      console.log('Drone berputar secara clockwise.');
+      this.sendCommand('rc 0 0 0 50'); // 50 adalah kecepatan yawing ke kanan
+    }, 100); // Mengirim perintah setiap 100 milidetik untuk respon cepat
+  }
+
+  stopRotateDrone() {
+    // Hentikan perintah rotasi saat tombol dilepas
+    if (this.rotationInterval) {
+      clearInterval(this.rotationInterval);
+      this.rotationInterval = null;
+      console.log('Rotasi drone dihentikan.');
+      this.sendCommand('rc 0 0 0 0'); // Hentikan semua gerakan saat tombol dilepas
+    }
   }
 
   land() {

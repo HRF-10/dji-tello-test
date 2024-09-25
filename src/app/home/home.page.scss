@@ -1,9 +1,9 @@
 ion-content {
-  --background: #fff; /* Latar belakang konten putih */
+  --background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); /* Gradasi biru dan ungu gelap */
   display: flex;
   align-items: center;
-  justify-content: center; /* Mengatur konten agar berada di tengah */
-  width: 100%;		
+  justify-content: center;
+  width: 100%;
   height: 100%;
 }
 
@@ -13,9 +13,13 @@ ion-content {
   height: 100%;
   width: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* Atur elemen dalam baris */
   align-items: center;
   justify-content: center; /* Pusatkan semua konten secara vertikal */
+  background-color: rgba(255, 255, 255, 0.1); /* Transparansi untuk kesan modern */
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.4); /* Bayangan lembut untuk efek 3D */
+  border-radius: 20px;
+  padding: 20px;
 }
 
 .top-right {
@@ -31,18 +35,54 @@ ion-content {
   left: 16px;
 }
 
+// .top-left ion-button{
+//   width: 55%;
+// }
+// .top-left ion-button{
+//   width: 55%;
+// }
+
+
 /* Canvas Styling */
 canvas {
-  border: 1px solid #000; /* Tambahkan border hitam pada kanvas */
-  background-color: #f0f0f0; /* Latar belakang kanvas abu-abu muda */
+  border: 2px solid rgba(255, 255, 255, 0.3); /* Border putih transparan pada kanvas */
+  background-color: rgba(20, 20, 40, 0.8); /* Latar belakang gelap dengan transparansi */
 }
 
 /* Button Styling */
 ion-button {
   margin-top: 16px; /* Jarak tombol dari elemen di atasnya */
   width: 80%; /* Lebar tombol relatif terhadap lebar container */
+
 }
 
 ion-button.expand-full {
   width: 100%; /* Lebar tombol expand-full memenuhi lebar container */
+}
+
+.rotate-airplane {
+  display: inline-block;
+  transform: rotate(45deg); /* Putar ikon sebesar 45 derajat */
+}
+
+.airplane-rotate {
+  display: inline-block;
+  transform: rotate(-90deg); /* Putar ikon sebesar 45 derajat */
+  
+}
+
+// .rotate-airplane:hover {
+//   transform: rotate(90deg); /* Saat di-hover, putar lebih jauh */
+// }
+
+@media (orientation: landscape) {
+  .top-left {
+    top: 24px;
+    left: 24px;
+  }
+  
+  .top-right {
+    top: 24px;
+    right: 24px;
+  }
 }

@@ -7,16 +7,24 @@
       <ion-button color="primary" shape="round" (click)="executeCommands()">
         <ion-icon name="play" slot="icon-only"></ion-icon>
       </ion-button>
+      <ion-button color="dark " shape="round" (click)="resetGrid()">
+        <ion-icon name="trash" slot="icon-only"></ion-icon>
+      </ion-button>
     </div>
 
     <div class="top-left">
       <ion-button color="success" shape="round" (click)="takeOff()">
-        <ion-icon name="airplane" slot="icon-only"></ion-icon>
+        <ion-icon name="airplane" slot="icon-only" class="airplane-rotate"></ion-icon>
       </ion-button>
       <ion-button color="danger" shape="round" (click)="land()">
-        <ion-icon name="power" slot="icon-only"></ion-icon>
+        <ion-icon name="airplane" slot="icon-only" class="rotate-airplane"></ion-icon>
       </ion-button>
-    </div>
+      <ion-button color="medium" shape="round" 
+                  (mousedown)="startRotateDrone()"
+                  (mouseup)="stopRotateDrone()">
+        <ion-icon name="reload-circle" slot="icon-only"></ion-icon>
+      </ion-button>
+    </div>      
 
     <canvas #canvas id="droneCanvas" width="300" height="300" (click)="handleCanvasClick($event)"></canvas>
   </div>
