@@ -7,8 +7,10 @@ import { TelloService } from '../services/udp.service';
   styleUrls: ['home.page.scss'],
 })
 export class HomePage {
-  @ViewChild('canvas', { static: true }) canvas!: ElementRef<HTMLCanvasElement>;
-  ctx!: CanvasRenderingContext2D;
+  @ViewChild('droneCanvas', { static: false }) droneCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('droneCanvas2', { static: false }) droneCanvas2!: ElementRef<HTMLCanvasElement>;
+  ctxDroneCanvas!: CanvasRenderingContext2D;
+  ctxDroneCanvas2!: CanvasRenderingContext2D;
   gridSize = 10;
   cellSize = 30;
   grid: string[][] = [];
@@ -19,10 +21,16 @@ export class HomePage {
 
   constructor(private telloService: TelloService) {}
 
-  ngOnInit() {
-    this.ctx = this.canvas.nativeElement.getContext('2d')!;
+  ngAfterViewInit() {
+    // Dapatkan konteks dari masing-masing kanvas
+    this.ctxDroneCanvas = this.droneCanvas.nativeElement.getContext('2d')!;
+    this.ctxDroneCanvas2 = this.droneCanvas2.nativeElement.getContext('2d')!;
+
     this.initializeGrid();
-    this.drawGrid();
+    
+    // Panggil fungsi untuk menggambar grid di masing-masing kanvas
+    this.drawGridForDroneCanvas();
+    this.drawGridForDroneCanvas2();
   }
 
   initializeGrid() {
@@ -35,29 +43,51 @@ export class HomePage {
     }
   }
 
-  drawGrid() {
-    this.ctx.clearRect(0, 0, this.canvas.nativeElement.width, this.canvas.nativeElement.height);
+  drawGridForDroneCanvas() {
+    this.ctxDroneCanvas.clearRect(0, 0, this.droneCanvas.nativeElement.width, this.droneCanvas.nativeElement.height);
     
     for (let i = 0; i < this.gridSize; i++) {
       for (let j = 0; j < this.gridSize; j++) {
         const y = this.gridSize - 1 - j; // Membalik sumbu Y untuk menggambar
-        this.ctx.fillStyle = this.grid[i][y] ? this.grid[i][y] : 'rgba(30, 30, 50, 0.7)';
-        this.ctx.fillRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; // Putih dengan sedikit transparansi
-        this.ctx.strokeRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
+
+        this.ctxDroneCanvas.fillStyle = this.grid[i][y] ? this.grid[i][y] : 'rgba(255, 255, 255, 0.1)'; // Warna transparan
+
+        this.ctxDroneCanvas.fillRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
+
+        this.ctxDroneCanvas.strokeStyle = 'rgba(255, 255, 255, 1)'; // Putih tanpa transparansi
+        this.ctxDroneCanvas.lineWidth = 1; // Atur lebar garis jika perlu
+        this.ctxDroneCanvas.strokeRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
       }
     }
     
+    // Gambar efek gelombang (ripple)
+    this.drawRipples();
+  }
+  
+  
+  // Fungsi menggambar grid untuk droneCanvas2 (kanvas latar belakang)
+  drawGridForDroneCanvas2() {
+    this.ctxDroneCanvas2.clearRect(0, 0, this.droneCanvas2.nativeElement.width, this.droneCanvas2.nativeElement.height);
+    
+    // Contoh efek yang berbeda di kanvas latar belakang
+    for (let i = 0; i < this.gridSize; i++) {
+      for (let j = 0; j < this.gridSize; j++) {
+        // Gambar efek yang diinginkan, misalnya warna dengan sedikit transparansi
+        this.ctxDroneCanvas2.fillStyle = 'rgba(15, 15, 25, 1)';
+        this.ctxDroneCanvas2.fillRect(i * this.cellSize, j * this.cellSize, this.cellSize, this.cellSize);
+      }
+    }
+  
     this.drawRipples();
   }
 
   drawRipples() {
     this.ripples.forEach((ripple, index) => {
-      this.ctx.beginPath();
-      this.ctx.arc(ripple.x, ripple.y, ripple.radius, 0, 2 * Math.PI);
-      this.ctx.strokeStyle = `rgba(255, 255, 255, ${ripple.alpha})`;
-      this.ctx.lineWidth = 2;
-      this.ctx.stroke();
+      this.ctxDroneCanvas.beginPath();
+      this.ctxDroneCanvas.arc(ripple.x, ripple.y, ripple.radius, 0, 2 * Math.PI);
+      this.ctxDroneCanvas.strokeStyle = `rgba(255, 255, 255, ${ripple.alpha})`;
+      this.ctxDroneCanvas.lineWidth = 2;
+      this.ctxDroneCanvas.stroke();
       ripple.radius += 2;
       ripple.alpha -= 0.02;
 
@@ -67,32 +97,40 @@ export class HomePage {
     });
 
     if (this.ripples.length > 0) {
-      requestAnimationFrame(() => this.drawGrid());
+      requestAnimationFrame(() => this.drawGridForDroneCanvas());
     }
   }
 
   handleCanvasClick(event: MouseEvent) {
-    const rect = this.canvas.nativeElement.getBoundingClientRect();
+    const rect = this.droneCanvas.nativeElement.getBoundingClientRect(); // Ganti canvas dengan droneCanvas
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     const i = Math.floor(x / this.cellSize);
     const j = this.gridSize - 1 - Math.floor(y / this.cellSize);
-
+  
     if (i >= this.gridSize || j >= this.gridSize || i < 0 || j < 0) {
       return;
     }
-
+  
+    // Tambahkan ripple di titik sentuh
     this.ripples.push({ x, y, radius: 0, alpha: 1 });
+  
     this.points.push({ i, j });
-
+  
+    // Tandai titik pertama dengan warna hitam, titik lainnya hijau
     if (this.points.length === 1) {
-      this.grid[i][j] = 'cyan'; // Titik pertama menggunakan cyan
+      this.grid[i][j] = 'black';
     } else {
-      this.grid[i][j] = 'lightgreen'; // Titik selanjutnya menggunakan light green
-      this.blockPath(this.points[this.points.length - 2], this.points[this.points.length - 1]);
+      this.grid[i][j] = 'green';
     }
-
-    this.drawGrid();
+  
+    // Sambungkan titik-titik jika lebih dari satu titik
+    if (this.points.length > 1) {
+      const lastPoint = this.points[this.points.length - 2];
+      this.blockPath(lastPoint, this.points[this.points.length - 1]);
+    }
+  
+    this.drawGridForDroneCanvas();
   }
 
   blockPath(start: { i: number, j: number }, end: { i: number, j: number }) {
@@ -106,12 +144,12 @@ export class HomePage {
     let err = dx - dy;
 
     while (!(x0 === x1 && y0 === y1)) {
-      this.grid[x0][y0] = 'yellow'; // Warna jalur yang terhubung menggunakan yellow
+      this.grid[x0][y0] = 'rgb(17, 4, 88)'; // Warna jalur yang terhubung menggunakan yellow
       const e2 = 2 * err;
       if (e2 > -dy) { err -= dy; x0 += sx; }
       if (e2 < dx) { err += dx; y0 += sy; }
     }
-    this.grid[x1][y1] = 'yellow'; // Warna titik akhir menggunakan yellow
+    this.grid[x1][y1] = 'rgb(17, 4, 88)'; // Warna titik akhir menggunakan yellow
   }
 
   async executeCommands() {
@@ -200,7 +238,7 @@ export class HomePage {
   resetGrid() {
     this.points = [];
     this.initializeGrid();
-    this.drawGrid();
+    this.drawGridForDroneCanvas();
   }
 
   async takeOff() {

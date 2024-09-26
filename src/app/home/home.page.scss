@@ -1,5 +1,5 @@
 ion-content {
-  --background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); /* Gradasi biru dan ungu gelap */
+  --background: linear-gradient(135deg, #1f1f2e, #2e2e3e, #3e3e56, #1f1f2e); /* Gradasi futuristik abu-hitam */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -22,10 +22,59 @@ ion-content {
   padding: 20px;
 }
 
-.top-right {
+/* Canvas Styling */
+// canvas {
+//   border: 2px solid rgba(255, 255, 255, 0.3); /* Border putih transparan pada kanvas */
+//   background-color: rgba(20, 20, 40, 0.8); /* Latar belakang gelap dengan transparansi */
+//   animation-name: grid;
+//   animation-duration: 2s;
+//   animation-iteration-count: infinite;
+//   animation-direction: alternate-reverse;
+
+// }
+
+/* Tidak ada animasi untuk droneCanvas */
+#droneCanvas {
+  border: 2px solid rgba(255, 255, 255, 0.3); /* Border putih transparan pada kanvas */
+  background-color: rgba(255, 255, 255, 0.1); /* Latar belakang gelap dengan transparansi */
+  animation-name: grid;
   position: absolute;
-  top: 16px;
-  right: 16px;
+  animation: none; /* Hindari animasi pada droneCanvas */
+}
+
+/* Animasi hanya diterapkan pada droneCanvas2 */
+#droneCanvas2 {
+  animation-name: grid;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate-reverse;
+}
+
+/* Button Styling */
+ion-button {
+  margin-top: 16px; /* Jarak tombol dari elemen di atasnya */
+  width: 80%; /* Lebar tombol relatif terhadap lebar container */
+  height: 48px; /* Atur tinggi tombol agar seragam */
+  display: flex; /* Menggunakan flexbox untuk memastikan isi tombol tertata */
+  align-items: center; /* Pusatkan isi tombol secara vertikal */
+  justify-content: center; /* Pusatkan isi tombol secara horizontal */
+  background: rgba(255, 255, 255, 0.1); /* Transparansi untuk kesan futuristik */
+  border-radius: 50px;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.8); /* Efek neon biru */
+  color: #00ffff; /* Warna teks biru muda neon */
+}
+
+ion-button.expand-full {
+  width: 100%; /* Lebar tombol expand-full memenuhi lebar container */
+}
+
+/* Styling untuk tombol di top-left dan top-right */
+.top-left ion-button,
+.top-right ion-button {
+  padding: auto;
+  width: 100px; /* Atur lebar tombol */
+  height: 40px; /* Atur tinggi tombol */
+  margin: 10px; /* Hapus margin untuk menata rapi */
 }
 
 /* Top Left Buttons */
@@ -35,29 +84,11 @@ ion-content {
   left: 16px;
 }
 
-// .top-left ion-button{
-//   width: 55%;
-// }
-// .top-left ion-button{
-//   width: 55%;
-// }
-
-
-/* Canvas Styling */
-canvas {
-  border: 2px solid rgba(255, 255, 255, 0.3); /* Border putih transparan pada kanvas */
-  background-color: rgba(20, 20, 40, 0.8); /* Latar belakang gelap dengan transparansi */
-}
-
-/* Button Styling */
-ion-button {
-  margin-top: 16px; /* Jarak tombol dari elemen di atasnya */
-  width: 80%; /* Lebar tombol relatif terhadap lebar container */
-
-}
-
-ion-button.expand-full {
-  width: 100%; /* Lebar tombol expand-full memenuhi lebar container */
+/* Top Right Buttons */
+.top-right {
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
 
 .rotate-airplane {
@@ -71,9 +102,68 @@ ion-button.expand-full {
   
 }
 
-// .rotate-airplane:hover {
-//   transform: rotate(90deg); /* Saat di-hover, putar lebih jauh */
-// }
+@keyframes anim-glow0{
+0% {
+  box-shadow: 0 0 rgba(#00c8ff, 1);
+}
+100% {
+  box-shadow: 0 0 10px 8px transparent;
+  border-width: 2px;
+}
+}
+
+@keyframes anim-glow1 {
+0% {
+  box-shadow: 0 0 rgba(#61EF61, 1);
+}
+100% {
+  box-shadow: 0 0 10px 8px transparent;
+  border-width: 2px;
+}
+}
+
+@keyframes anim-glow2 {
+0% {
+  box-shadow: 0 0 rgba(#efd561, 1);
+}
+100% {
+  box-shadow: 0 0 10px 8px transparent;
+  border-width: 2px;
+}
+}
+
+
+@keyframes anim-glow3 {
+0% {
+  box-shadow: 0 0 rgba(#ff0000, 1);
+}
+100% {
+  box-shadow: 0 0 10px 8px transparent;
+  border-width: 2px;
+}
+}
+
+
+@keyframes anim-glow4 {
+0% {
+  box-shadow: 0 0 rgba(255, 144, 194, 1);
+}
+100% {
+  box-shadow: 0 0 10px 8px transparent;
+  border-width: 2px;
+}
+}
+
+
+@keyframes anim-glow5 {
+0% {
+  box-shadow: 0 0 rgba( 147, 205, 255, 1);
+}
+100% {
+  box-shadow: 0 0 10px 8px transparent;
+  border-width: 2px;
+}
+}
 
 @media (orientation: landscape) {
   .top-left {
@@ -85,4 +175,11 @@ ion-button.expand-full {
     top: 24px;
     right: 24px;
   }
+
+}
+
+
+@keyframes grid {
+  from {opacity: 0.5;}
+  to {opacity: 1;}
 }
